@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
+import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { usePublishedPosts } from '../../hooks/usePosts'
 import { useAuth } from '../../hooks/useAuth'
@@ -6,49 +6,19 @@ import PostCard from '../../components/PostCard'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import SearchModal from '../../components/SearchModal'
 
-const BG_IMAGES = [
-  '/images/bg/1.jpg',
-  '/images/bg/2.jpg',
-  '/images/bg/3.jpg',
-  '/images/bg/4.jpg',
-  '/images/bg/5.jpg',
-]
+const BASE = import.meta.env.BASE_URL
+
+// 背景图：选择其中一张固定展示
+const BG_IMAGE = `${BASE}images/bg/1.jpg`
 
 const SECTIONS = [
   { key: 'home', label: 'HOME', icon: '🏠', desc: '回到首页', tag: null },
   { key: 'research', label: 'RESEARCH', icon: '🔬', desc: '研究探索', tag: 'research' },
-  { key: 'dashboard', label: 'DASHBOARD', icon: '⚙️', desc: '管理后台', tag: null, admin: true },
   { key: 'knowledge', label: 'KNOWLEDGE', icon: '📚', desc: '知识积累', tag: 'knowledge' },
   { key: 'ideas', label: 'IDEAS', icon: '💡', desc: '灵感火花', tag: 'ideas' },
   { key: 'notes', label: 'NOTES', icon: '📝', desc: '日常笔记', tag: 'notes' },
   { key: 'share', label: 'SHARE', icon: '🤝', desc: '分享交流', tag: 'share' },
 ]
-
-function useImageSlideshow(images: string[], interval = 6000) {
-  const [index, setIndex] = useState(0)
-  const timerRef = useRef<ReturnType<typeof setInterval>>(undefined)
-
-  const resetTimer = useCallback(() => {
-    if (timerRef.current) clearInterval(timerRef.current)
-    timerRef.current = setInterval(() => {
-      setIndex((prev) => (prev + 1) % images.length)
-    }, interval)
-  }, [images.length, interval])
-
-  useEffect(() => {
-    resetTimer()
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current)
-    }
-  }, [resetTimer])
-
-  const goTo = useCallback((i: number) => {
-    setIndex(i)
-    resetTimer()
-  }, [resetTimer])
-
-  return [index, goTo] as const
-}
 
 export default function HomePage() {
   const [page, setPage] = useState(1)
@@ -57,7 +27,6 @@ export default function HomePage() {
   const { posts, total, loading } = usePublishedPosts(page)
   const { isAuthenticated } = useAuth()
   const navigate = useNavigate()
-  const [currentBgIndex, goToImage] = useImageSlideshow(BG_IMAGES)
 
   const filteredPosts = useMemo(() => {
     if (!activeTag) return posts
@@ -69,14 +38,6 @@ export default function HomePage() {
   const totalPages = Math.ceil(total / 10)
 
   const handleSectionClick = (section: (typeof SECTIONS)[0]) => {
-    if (section.admin) {
-      if (isAuthenticated) {
-        navigate('/admin/dashboard')
-      } else {
-        navigate('/admin/login')
-      }
-      return
-    }
     if (section.tag) {
       setActiveTag(activeTag === section.tag ? null : section.tag)
       setPage(1)
@@ -94,19 +55,15 @@ export default function HomePage() {
     <div>
       {/* Hero Section */}
       <section className="relative text-white overflow-hidden min-h-[70vh] flex items-center">
-        {/* Rotating blurred background images */}
-        {BG_IMAGES.map((src, i) => (
-          <div
-            key={src}
-            className="absolute inset-0 bg-cover bg-center transition-opacity duration-[2000ms] ease-in-out"
-            style={{
-              backgroundImage: `url(${src})`,
-              filter: 'blur(12px)',
-              opacity: i === currentBgIndex ? 1 : 0,
-              transform: 'scale(1.1)',
-            }}
-          />
-        ))}
+        {/* Fixed blurred background image */}
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-fixed"
+          style={{
+            backgroundImage: `url(${BG_IMAGE})`,
+            filter: 'blur(12px)',
+            transform: 'scale(1.1)',
+          }}
+        />
 
         {/* Teal green overlay */}
         <div className="absolute inset-0 bg-teal-900/55" />
@@ -152,22 +109,6 @@ export default function HomePage() {
                 了解更多
               </button>
             </div>
-
-            {/* Image dots indicator */}
-            <div className="flex gap-2 mt-8">
-              {BG_IMAGES.map((_, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  className={`w-2 h-2 rounded-full transition-all cursor-pointer ${
-                    i === currentBgIndex
-                      ? 'bg-white w-6'
-                      : 'bg-white/40 hover:bg-white/60'
-                  }`}
-                  onClick={() => goToImage(i)}
-                />
-              ))}
-            </div>
           </div>
         </div>
 
@@ -184,7 +125,7 @@ export default function HomePage() {
 
       {/* Section Navigation Cards */}
       <section className="max-w-5xl mx-auto px-4 -mt-8 relative z-10 mb-12">
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           {SECTIONS.map((section) => {
             const isActive = activeTag === section.tag || (!activeTag && section.key === 'home')
             return (
