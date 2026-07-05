@@ -1,7 +1,5 @@
 import { useState, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { usePublishedPosts } from '../../hooks/usePosts'
-import { useAuth } from '../../hooks/useAuth'
 import PostCard from '../../components/PostCard'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import SearchModal from '../../components/SearchModal'
@@ -25,8 +23,6 @@ export default function HomePage() {
   const [activeTag, setActiveTag] = useState<string | null>(null)
   const [searchOpen, setSearchOpen] = useState(false)
   const { posts, total, loading } = usePublishedPosts(page)
-  const { isAuthenticated } = useAuth()
-  const navigate = useNavigate()
 
   const filteredPosts = useMemo(() => {
     if (!activeTag) return posts
