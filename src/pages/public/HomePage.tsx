@@ -1,9 +1,18 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { usePublishedPosts } from '../../hooks/usePosts'
 import { useAuth } from '../../hooks/useAuth'
 import PostCard from '../../components/PostCard'
 import LoadingSpinner from '../../components/LoadingSpinner'
+import SearchModal from '../../components/SearchModal'
+
+const BG_IMAGES = [
+  '/images/bg/1.jpg',
+  '/images/bg/2.jpg',
+  '/images/bg/3.jpg',
+  '/images/bg/4.jpg',
+  '/images/bg/5.jpg',
+]
 
 const SECTIONS = [
   { key: 'home', label: 'HOME', icon: '🏠', desc: '回到首页', tag: null },
@@ -15,12 +24,40 @@ const SECTIONS = [
   { key: 'share', label: 'SHARE', icon: '🤝', desc: '分享交流', tag: 'share' },
 ]
 
+function useImageSlideshow(images: string[], interval = 6000) {
+  const [index, setIndex] = useState(0)
+  const timerRef = useRef<ReturnType<typeof setInterval>>(undefined)
+
+  const resetTimer = useCallback(() => {
+    if (timerRef.current) clearInterval(timerRef.current)
+    timerRef.current = setInterval(() => {
+      setIndex((prev) => (prev + 1) % images.length)
+    }, interval)
+  }, [images.length, interval])
+
+  useEffect(() => {
+    resetTimer()
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current)
+    }
+  }, [resetTimer])
+
+  const goTo = useCallback((i: number) => {
+    setIndex(i)
+    resetTimer()
+  }, [resetTimer])
+
+  return [index, goTo] as const
+}
+
 export default function HomePage() {
   const [page, setPage] = useState(1)
   const [activeTag, setActiveTag] = useState<string | null>(null)
+  const [searchOpen, setSearchOpen] = useState(false)
   const { posts, total, loading } = usePublishedPosts(page)
   const { isAuthenticated } = useAuth()
   const navigate = useNavigate()
+  const [currentBgIndex, goToImage] = useImageSlideshow(BG_IMAGES)
 
   const filteredPosts = useMemo(() => {
     if (!activeTag) return posts
@@ -56,33 +93,45 @@ export default function HomePage() {
   return (
     <div>
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-slate-900 via-indigo-950 to-purple-900 text-white overflow-hidden">
-        {/* Background overlay pattern */}
+      <section className="relative text-white overflow-hidden min-h-[70vh] flex items-center">
+        {/* Rotating blurred background images */}
+        {BG_IMAGES.map((src, i) => (
+          <div
+            key={src}
+            className="absolute inset-0 bg-cover bg-center transition-opacity duration-[2000ms] ease-in-out"
+            style={{
+              backgroundImage: `url(${src})`,
+              filter: 'blur(12px)',
+              opacity: i === currentBgIndex ? 1 : 0,
+              transform: 'scale(1.1)',
+            }}
+          />
+        ))}
+
+        {/* Teal green overlay */}
+        <div className="absolute inset-0 bg-teal-900/55" />
+
+        {/* Subtle pattern overlay */}
         <div
-          className="absolute inset-0 opacity-[0.03]"
+          className="absolute inset-0 opacity-[0.04]"
           style={{
             backgroundImage:
               "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")",
           }}
         />
-        {/* Animated gradient orbs */}
-        <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] rounded-full bg-purple-500/20 blur-[100px]" />
-        <div className="absolute bottom-[-30%] right-[-5%] w-[400px] h-[400px] rounded-full bg-indigo-500/20 blur-[100px]" />
 
-        <div className="relative max-w-5xl mx-auto px-4 py-24 md:py-32">
+        {/* Animated gradient orbs — teal & emerald */}
+        <div className="absolute top-[-15%] right-[-8%] w-[400px] h-[400px] rounded-full bg-teal-400/15 blur-[100px]" />
+        <div className="absolute bottom-[-20%] left-[-5%] w-[350px] h-[350px] rounded-full bg-emerald-400/12 blur-[100px]" />
+
+        <div className="relative max-w-5xl mx-auto px-4 py-20 md:py-28 w-full">
           <div className="max-w-2xl">
-            <p className="text-purple-300 text-sm font-medium tracking-[0.2em] mb-4 uppercase">
-              Welcome to my digital garden
-            </p>
+            {/* Blog title — clean & minimal */}
             <h1 className="text-4xl md:text-6xl font-bold leading-tight mb-6 tracking-tight">
-              探索思想，
-              <br />
-              <span className="bg-gradient-to-r from-purple-400 to-pink-300 bg-clip-text text-transparent">
-                记录旅程
-              </span>
+              我的博客
             </h1>
-            <p className="text-lg text-gray-300 leading-relaxed max-w-lg">
-              一个关于研究、知识与灵感的个人博客。在这里分享我的思考、发现和创作。
+            <p className="text-lg text-white/70 leading-relaxed max-w-lg">
+              记录思考，分享发现，探索知识的无限可能。
             </p>
             <div className="flex gap-3 mt-8">
               <button
@@ -91,17 +140,33 @@ export default function HomePage() {
                   const el = document.getElementById('posts')
                   el?.scrollIntoView({ behavior: 'smooth' })
                 }}
-                className="px-6 py-3 bg-white text-slate-900 rounded-xl font-medium hover:bg-gray-100 transition-all cursor-pointer shadow-lg shadow-purple-500/25"
+                className="px-6 py-3 bg-white text-teal-800 rounded-xl font-medium hover:bg-teal-50 transition-all cursor-pointer shadow-lg shadow-teal-500/25"
               >
                 浏览文章
               </button>
               <button
                 type="button"
-                onClick={() => handleSectionClick(SECTIONS[0])}
-                className="px-6 py-3 border border-white/30 text-white rounded-xl font-medium hover:bg-white/10 transition-all cursor-pointer"
+                onClick={() => setSearchOpen(true)}
+                className="px-6 py-3 border border-white/30 text-white rounded-xl font-medium hover:bg-white/10 transition-all cursor-pointer backdrop-blur-sm"
               >
                 了解更多
               </button>
+            </div>
+
+            {/* Image dots indicator */}
+            <div className="flex gap-2 mt-8">
+              {BG_IMAGES.map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  className={`w-2 h-2 rounded-full transition-all cursor-pointer ${
+                    i === currentBgIndex
+                      ? 'bg-white w-6'
+                      : 'bg-white/40 hover:bg-white/60'
+                  }`}
+                  onClick={() => goToImage(i)}
+                />
+              ))}
             </div>
           </div>
         </div>
@@ -111,7 +176,7 @@ export default function HomePage() {
           <svg viewBox="0 0 1440 60" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path
               d="M0 60V30C240 0 480 0 720 30C960 60 1200 60 1440 30V60H0Z"
-              className="fill-gray-50"
+              className="fill-teal-50"
             />
           </svg>
         </div>
@@ -129,7 +194,7 @@ export default function HomePage() {
                 onClick={() => handleSectionClick(section)}
                 className={`group flex flex-col items-center gap-1.5 p-4 rounded-xl transition-all duration-300 cursor-pointer border ${
                   isActive
-                    ? 'bg-indigo-50 border-indigo-200 shadow-md shadow-indigo-100/50 -translate-y-1'
+                    ? 'bg-teal-50 border-teal-200 shadow-md shadow-teal-100/50 -translate-y-1'
                     : 'bg-white border-gray-100 hover:border-gray-200 hover:shadow-lg hover:-translate-y-1'
                 }`}
               >
@@ -137,7 +202,7 @@ export default function HomePage() {
                   {section.icon}
                 </span>
                 <span className={`text-[11px] font-semibold tracking-wider ${
-                  isActive ? 'text-indigo-700' : 'text-gray-600'
+                  isActive ? 'text-teal-700' : 'text-gray-600'
                 }`}>
                   {section.label}
                 </span>
@@ -153,7 +218,7 @@ export default function HomePage() {
         {activeTag && (
           <div className="flex items-center justify-center mt-4 gap-2">
             <span className="text-sm text-gray-500">
-              筛选标签：<span className="font-semibold text-indigo-600 uppercase">{activeTag}</span>
+              筛选标签：<span className="font-semibold text-teal-600 uppercase">{activeTag}</span>
             </span>
             <button
               type="button"
@@ -212,7 +277,7 @@ export default function HomePage() {
                     onClick={() => setPage(n)}
                     className={`w-10 h-10 text-sm rounded-lg transition-colors cursor-pointer ${
                       n === page
-                        ? 'bg-indigo-600 text-white'
+                        ? 'bg-teal-600 text-white'
                         : 'border border-gray-300 hover:bg-gray-50'
                     }`}
                   >
@@ -232,6 +297,9 @@ export default function HomePage() {
           </>
         )}
       </section>
+
+      {/* Search Modal */}
+      <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
     </div>
   )
 }

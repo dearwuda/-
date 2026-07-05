@@ -34,6 +34,38 @@ export async function getSession() {
 
 // ===== Posts =====
 
+export async function searchPosts({
+  keyword,
+  dateFrom,
+  dateTo,
+}: {
+  keyword?: string
+  dateFrom?: string
+  dateTo?: string
+}) {
+  let query = supabase
+    .from('posts')
+    .select('*')
+    .eq('published', true)
+    .order('created_at', { ascending: false })
+
+  if (keyword?.trim()) {
+    query = query.or(
+      `title.ilike.%${keyword.trim()}%,excerpt.ilike.%${keyword.trim()}%`
+    )
+  }
+  if (dateFrom) {
+    query = query.gte('created_at', dateFrom)
+  }
+  if (dateTo) {
+    // Include the whole end day
+    query = query.lte('created_at', `${dateTo}T23:59:59`)
+  }
+
+  const { data, error } = await query.limit(50)
+  return { data: data as Post[] | null, error }
+}
+
 export async function fetchPublishedPosts(page = 1, limit = 10) {
   const from = (page - 1) * limit
   const to = from + limit - 1

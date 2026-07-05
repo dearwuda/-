@@ -12,15 +12,15 @@ export default function Layout() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen flex flex-col bg-teal-50">
       {/* Navbar */}
       <header className="bg-white/80 backdrop-blur-md border-b border-gray-200/60 sticky top-0 z-50">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
           <Link
             to="/"
-            className="text-lg font-bold tracking-tight text-gray-900 hover:text-indigo-600 transition-colors flex items-center gap-2"
+            className="text-lg font-bold tracking-tight text-gray-900 hover:text-teal-600 transition-colors flex items-center gap-2"
           >
-            <span className="w-7 h-7 bg-indigo-600 text-white rounded-lg flex items-center justify-center text-xs font-bold">
+            <span className="w-7 h-7 bg-teal-600 text-white rounded-lg flex items-center justify-center text-xs font-bold">
               B
             </span>
             我的博客
